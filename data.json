@@ -1,0 +1,23 @@
+{
+    "words": [
+        {
+            "word": [
+                "a"
+            ],
+            "corresponds": [
+                "b",
+                "c"
+            ],
+            "ignore": false
+          },
+          {
+            "word": [
+                "d"
+            ],
+            "corresponds": [
+                "f"
+            ],
+            "ignore": false
+          }
+    ]
+}

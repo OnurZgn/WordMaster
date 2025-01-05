@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Word Master</title>
+        <style>
+        @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap");
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Roboto", sans-serif;
+        }
+
+        body {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #5d326c, #350048);
+        }
+
+        .label-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .number-label {
+            font-size: 1rem;
+            color: white;
+            background: rgba(90, 90, 90, 0.158);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(48, 48, 48, 0.13);
+            transition: transform 0.3s;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            background-color: rgba(255, 255, 255, 0.1);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #6e6e6e;
+            border-radius: 5px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-upload {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative;
+            text-align: center;
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+
+        .file-upload:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
+        }
+
+        input[type="text"]:disabled,
+        .file-upload:disabled {
+            background-color: rgba(216, 216, 216, 0.945);
+        }
+
+        input[type="text"]:focus {
+            border-color: #6d6d6d;
+            outline: none;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .active {
+            display: block;
+        }
+
+        .container .btn {
+            position: relative;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 50px;
+            margin: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container .btn a {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 15px 15px rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 10px;
+            letter-spacing: 1px;
+            text-decoration: none;
+            overflow: hidden;
+            color: #fff;
+            font-weight: 400px;
+            z-index: 1;
+            transition: 0.5s;
+            backdrop-filter: blur(15px);
+        }
+
+        .container .btn:hover a {
+            letter-spacing: 3px;
+        }
+
+        .container .btn a::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(to left,
+                    rgba(255, 255, 255, 0.15),
+                    transparent);
+            transform: skewX(45deg) translate(0);
+            transition: 0.5s;
+            filter: blur(0px);
+        }
+
+        .container .btn:hover a::before {
+            transform: skewX(45deg) translate(200px);
+        }
+
+        .container .btn::before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translatex(-50%);
+            bottom: -5px;
+            width: 30px;
+            height: 10px;
+            background: #f00;
+            border-radius: 10px;
+            transition: 0.5s;
+            transition-delay: 0.5;
+        }
+
+        .container .btn:hover::before
+
+            {
+            bottom: 0;
+            height: 50%;
+            width: 80%;
+            border-radius: 30px;
+        }
+
+        .container .btn::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translatex(-50%);
+            top: -5px;
+            width: 30px;
+            height: 10px;
+            background: #f00;
+            border-radius: 10px;
+            transition: 0.5s;
+            transition-delay: 0.5;
+        }
+
+        .container .btn:hover::after
+
+            {
+            top: 0;
+            height: 50%;
+            width: 80%;
+            border-radius: 30px;
+        }
+
+        .container .btn:nth-child(1)::before,
+        .container .btn:nth-child(1)::after {
+            background: #ff1f71;
+            box-shadow: 0 0 5px #ff1f71, 0 0 15px #ff1f71, 0 0 30px #ff1f71,
+                0 0 60px #ff1f71;
+        }
+
+        .container .btn:nth-child(2)::before,
+        .container .btn:nth-child(2)::after {
+            background: #2db2ff;
+            box-shadow: 0 0 5px #2db2ff, 0 0 15px #2db2ff, 0 0 30px #2db2ff,
+                0 0 60px #2db2ff;
+        }
+
+        .container .btn:nth-child(3)::before,
+        .container .btn:nth-child(3)::after {
+            background: #1eff45;
+            box-shadow: 0 0 5px #1eff45, 0 0 15px #1eff45, 0 0 30px #1eff45,
+                0 0 60px #1eff45;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #e7f3fe;
+            color: #31708f;
+            border: 1px solid #bcdff1;
+        }
+
+        .tr {
+            display: block;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            input[type="text"],
+            input[type="file"],
+            .container button {
+                font-size: 0.9rem;
+            }
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 230px;
+            background-color: rgba(129, 129, 129, 0.2);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            top: 125%;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+    </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <div id="uploadPage" class="page active">
+                <input type="file" id="fileInput" multiple>
+                <label for="fileInput" class="file-upload">Load Files</label>
+                <div class="btn tooltip">
+                    <span class="tooltiptext">
+                        If you click this button without uploading your files,
+                        the data
+                        will be retrieved from github.
+                    </span>
+                    <a id="fetchFiles">Load/Fetch Files</a>
+                </div>
+            </div>
+            <div id="mainPage" class="page">
+                <input id="eng" type="text" style="text-align: center;" placeholder="English">
+                <input id="tr1" type="text" class="tr" style="text-align: center;" placeholder="Turkish">
+                <input id="tr2" type="text" class="tr" style="text-align: center;" placeholder="Turkish">
+                <input id="tr3" type="text" class="tr" style="text-align: center;" placeholder="Turkish">
+                <input id="interval" type="text" style="text-align: center;"
+                    placeholder="Interval < x-y, x, a:All, i:ignore >">
+                <div class="label-container">
+                    <div class="btn" style="width:60%;">
+                        <a id="ignoreBtn">Ignore</a>
+                    </div>
+                    <div class="btn" style="width:60%;">
+                        <a id="x">x</a>
+                    </div>
+                </div>
+                <div class="btn">
+                    <a id="hint">?</a>
+                </div>
+                <div class="btn">
+                    <a id="setInterval">Set Interval</a>
+                </div>
+                <div class="btn">
+                    <a id="nextBtn">Next</a>
+                </div>
+                <div class="btn">
+                    <a id="markBtn">Mark</a>
+                </div>
+                <div class="label-container">
+                    <div class="btn" style="width:60%;"><a
+                            id="addBtnMain">+</a></div>
+                    <label class="number-label" id="size"></label>
+                    <div class="btn" style="width: 60%;"><a
+                            id="refresh">🗘</a></div>
+                </div>
+            </div>
+            <div id="addWordPage" class="page">
+                <input id="newEng" type="text" style="text-align: center;" placeholder="Word">
+                <input id="newTr1" class="tr" style="text-align: center;" type="text" placeholder="Correspond">
+                <input id="newTr2" class="tr" style="text-align: center;" type="text" placeholder="Correspond">
+                <input id="newTr3" class="tr" style="text-align: center;" type="text" placeholder="Correspond">
+                <div class="btn">
+                    <a id="addBtn">Add</a>
+                </div>
+                <div class="btn">
+                    <a id="saveBtn">Save</a>
+                </div>
+                <div class="btn">
+                    <a id="downloadFiles">Download Files</a>
+                </div>
+                <div class="btn">
+                    <a id="backBtn">Back to Menu</a>
+                </div>
+            </div>
+        </div>
+        <!--
+    <script src="app.js"></script> 
+    -->
+        <script>
+        pageActive = "";
+        engW = [];
+        trW = [];
+        engS = [];
+        trS = [];
+        engM = [];
+        trM = [];
+        trI=[];
+        engI=[];
+        range = [0,0];
+        rn1 = 0;
+        rn2 = 0;
+        const GITHUB_TOKEN = ""; //github API
+        const REPO_OWNER = ""; // repo owner's name
+        const REPO_NAME = ""; //repo name
+        const path = 'data.json';
+        let fileSha='';
+        let fileContent=null;
+
+        async function showPage(pageId) {
+            pageActive = pageId;
+            console.log(pageActive);
+            const pages = document.querySelectorAll(".page");
+            pages.forEach((page) => {
+                page.classList.remove("active");
+            });
+            document.getElementById(pageId).classList.add("active");
+        }
+
+        document.getElementById('fetchFiles').addEventListener('click', async function() {
+            try {
+                const result = await getFileContent();
+                
+                fileContent = JSON.parse(result.fileContent);
+                
+                //All words
+                engW = fileContent.words.map(word => word.english);
+                trW = fileContent.words.map(word => [...word.turkish]);
+
+                //only selected words
+                trI=fileContent.words.filter(word=>word.ignore===false).map(word=>[...word.turkish]);
+                engI=fileContent.words.filter(word=>word.ignore===false).map(word=>word.english);
+
+                trS=trI;
+                engS=engI;
+
+                const fileSha = result.sha;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+            if(engS.length){
+                document.getElementById("size").textContent=engS.length;
+                document.getElementById('nextBtn').click();
+                showPage("mainPage")
+            }
+        });
+        
+        async function getFileContent() {
+            const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`;
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Authorization: `token ${GITHUB_TOKEN}`,
+                    Accept: 'application/vnd.github.v3+json'
+                }
+            });
+        
+            
+            if (!response.ok) {
+                throw new Error('File didn\'t fetch!');
+            }
+        
+            const data = await response.json(); 
+            const base64Content = data.content; 
+            const fileContent = decodeURIComponent(escape(atob(base64Content))); 
+            return { fileContent, sha: data.sha }; 
+        }
+        
+        document.getElementById("markBtn").addEventListener("click", function () {
+            engM.push(engS[rn2]);
+            trM.push(trS[rn2]);
+            document.getElementById("ignoreBtn").click();
+        });
+        document
+            .getElementById("addBtnMain")
+            .addEventListener("click", function () {
+                showPage("addWordPage");
+            });
+        document.getElementById("backBtn").addEventListener("click", function () {
+            showPage("mainPage");
+        });
+        document
+            .getElementById("setInterval")
+            .addEventListener("click", function () {
+                interval=document.getElementById("interval").value.trim();
+                if(interval=="?"){
+                    engS = engM;
+                    trS = trM
+                }else if(interval=="a"){
+                    engS=engW;
+                    trS=trW;
+                }
+                else if(interval=="i"){
+                    engS=engI;
+                    trS=trI;
+                }
+                range = interval.split("-").map((v) => Number(v.trim()));
+                if(range.length==1){
+                    engS = engW.slice(engW.length - range[0]);
+                    trS = trW.slice(engW.length - range[0]);
+                    range[0]=engW.length-range[0];
+                }
+                else if (
+                    range.length == 2 &&
+                    range[0] >= 0 &&
+                    range[1] <= engW.length
+                ) {
+                    engS = engW.slice(range[0], range[1]);
+                    trS = trW.slice(range[0], range[1]);
+                }
+                document.getElementById("nextBtn").click();
+                document.getElementById("size").textContent = engS.length;
+            });
+
+        document.getElementById("saveBtn").addEventListener("click",async function () {
+            try {
+                await updateFileContent();
+                alert("File updated successfully!");
+            } catch (error) {
+                console.error('An error is occcured while updating database:', error);
+                alert("An error is occcured while updating database.");
+            }
+            
+        });
+        document.getElementById("addBtn").addEventListener("click",function(){
+            const newEng = document.getElementById("newEng").value.trim();
+            const newTr1 = document.getElementById("newTr1").value.trim();
+            const newTr2 = document.getElementById("newTr2").value.trim();
+            const newTr3 = document.getElementById("newTr3").value.trim();
+
+            if (newEng && (newTr1 || newTr2 || newTr3)) {
+                const isAlreadyIn=engW.some((word)=>{
+                    const words=word[0].split("-");
+                    return words.includes(newEng);
+                });
+                if(isAlreadyIn)
+                    alert("This word is already exits");
+                else{
+                    engW.push([newEng]);
+                    trW.push([newTr1, newTr2, newTr3].filter((tr) => tr !== ""));
+                    fileContent.words.push({english: engW[engW.length-1], turkish:trW[trW.length-1], ignore:false})
+                    alert("Word added successfully!");
+                }
+            } else {
+                alert(
+                    "Please enter at least one world and its equivalent."
+                );
+            }
+
+            document.getElementById("newEng").value = "";
+            document.getElementById("newTr1").value = "";
+            document.getElementById("newTr2").value = "";
+            document.getElementById("newTr3").value = "";
+        })
+        async function updateFileContent() {
+            const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`;
+            
+            const contentString = JSON.stringify(fileContent, null, 2);
+            const encodedContent = btoa(unescape(encodeURIComponent(contentString))); 
+        
+            const shaResponse = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Authorization: `token ${GITHUB_TOKEN}`,
+                    Accept: 'application/vnd.github.v3+json'
+                }
+            });
+        
+            if (!shaResponse.ok) {
+                throw new Error('Sha cannot taken!');
+            }
+        
+            const shaData = await shaResponse.json();
+            const fileSha = shaData.sha;
+        
+            // Update the file
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `token ${GITHUB_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: 'database updated!',
+                    content: encodedContent,
+                    sha: fileSha
+                })
+            });
+        
+            if (!response.ok) {
+                throw new Error('File didn\'t update!');
+            }
+        }
+        document
+            .getElementById("fileInput")
+            .addEventListener("change", function () {
+                const fileInput = document.getElementById("fileInput");
+                const files = fileInput.files;
+                if (files.length === 0) return;
+                Array.from(files).forEach((file) => {
+                    if (file.name === "engW.txt") {
+                        const reader = new FileReader();
+
+                        reader.onload = function (e) {
+                            const content = e.target.result;
+                            const lines = content.split("\n").map((line) => line.trim());
+                            lines.forEach((line) => {
+                                engList = line.split("-").map((v) => v.trim());
+                                engW.push(engList.filter((v) => v !== ""));
+                            });
+                        };
+
+                        reader.onerror = function () {
+                            console.error("There is an error while file is reading");
+                        };
+                        reader.readAsText(file);
+                    } else if (file.name === "TRW.txt") {
+                        const reader = new FileReader();
+
+                        reader.onload = function (e) {
+                            const content = e.target.result;
+                            const lines = content.split("\n").map((line) => line.trim());
+                            lines.forEach((line) => {
+                                trList = line.split("-").map((v) => v.trim());
+                                trW.push(trList.filter((v) => v !== ""));
+                            });
+                        };
+
+                        reader.onerror = function () {
+                            console.error("There is an error while file is reading");
+                        };
+                        reader.readAsText(file);
+                    }
+                });
+            });
+
+        document
+            .getElementById("ignoreBtn")
+            .addEventListener("click", function () {
+                engS.splice(rn2, 1);
+                trS.splice(rn2, 1);
+                document.getElementById("size").textContent = engS.length;
+                document.getElementById("nextBtn").click();
+            });
+
+        document.getElementById("nextBtn").addEventListener("click", function () {
+            engInput = document.getElementById("eng");
+            trInputs = document.querySelectorAll(".tr");
+            trInputs.forEach((v) => {
+                v.disabled = false;
+                v.value = "";
+            });
+            engInput.value = "";
+            if (engS.length <= 0) return;
+            rn1 = Math.ceil(Math.random() * 2);
+            rn2 = Math.floor(Math.random() * engS.length);
+            if (rn1 == 1) {
+                engInput.disabled = false;
+                for (let i = 0; i < 3; i++) {
+                    console.log(i);
+                    trInputs[i].disabled = true;
+                    if (trS[rn2][i] != undefined) trInputs[i].value = trS[rn2][i];
+                }
+            } else {
+                engInput.disabled = true;
+                engInput.value = engS[rn2];
+            }
+        });
+        document.getElementById("hint").addEventListener("click", function () {
+            trInputs = document.querySelectorAll(".tr");
+            for (let i = 0; i < 3; i++) {
+                console.log(i);
+                trInputs[i].disabled = true;
+                if (trS[rn2][i] != undefined) trInputs[i].value = trS[rn2][i];
+            }
+            document.getElementById("eng").disabled = true;
+            document.getElementById("eng").value = engS[rn2];
+        });
+        document.getElementById("x").addEventListener("click", function(){
+            fileContent.words[engW.indexOf(engS[rn2])].ignore=true;
+            console.log(fileContent.words[engW.indexOf(engS[rn2])]);
+            document.getElementById("ignoreBtn").click();
+        });
+        document.getElementById("refresh").addEventListener("click", function(){
+            updateFileContent();
+        })
+    </script>
+    </body>
+
+</html>
