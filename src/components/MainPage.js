@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+var AIToken = process.env.REACT_APP_AI_API_KEY1;
 
 function MainPage({ 
   showPage, 
@@ -24,7 +25,7 @@ function MainPage({
   const AI_URL = process.env.REACT_APP_AI_API_URL;
   const AIToken1 = process.env.REACT_APP_AI_API_KEY1;
   const AIToken2 = process.env.REACT_APP_AI_API_KEY2;
-  var AIToken = process.env.REACT_APP_AI_API_KEY1;
+
 
 
 
@@ -133,7 +134,8 @@ function MainPage({
   };
 
   const askAI = async (sysPrompt, userPrompt) => {
-    console.log(engS.length)
+    if (AIToken === AIToken1) AIToken = AIToken2;
+    else AIToken = AIToken1;
     try {
       const response = await fetch(`${AI_URL}/chat/completions`, {
         method: 'POST',
@@ -174,7 +176,6 @@ function MainPage({
     const word = engS[randomIndex];
     const sysPrompt = "You are an English language assistant. Create a grammatically correct sentence using the word.";
     const userPrompt = `Create a sentence using the word "${word}", use at most 9 words.`;
-    AIToken = AIToken1;
     const response = await askAI(sysPrompt, userPrompt);
     setIntervalText(response);
     
@@ -206,7 +207,6 @@ function MainPage({
     
     const sysPrompt = "You are an english language assistant. Explain the given word with only one short sentence.";
     const userPrompt = `Explain the world: ${word}, use at most 10 word to explain it`;
-    AIToken = AIToken2;
     const response = await askAI(sysPrompt, userPrompt);
     setIntervalText(response);
   };

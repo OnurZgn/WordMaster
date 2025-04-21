@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-
+var AIToken = process.env.REACT_APP_AI_API_KEY1;
 function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, setEngW, setTrW }) {
   const [newEng, setNewEng] = useState('');
   const [newTr1, setNewTr1] = useState('');
@@ -10,9 +10,13 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
 
   // AI configuration
   const AI_URL = process.env.REACT_APP_AI_API_URL;
-  const AIToken = process.env.REACT_APP_AI_API_KEY2;
+  const AIToken1 = process.env.REACT_APP_AI_API_KEY1;
+  const AIToken2 = process.env.REACT_APP_AI_API_KEY2;
 
   const askAI = async (sysPrompt, userPrompt) => {
+    if (AIToken === AIToken1) AIToken = AIToken2;
+    else AIToken = AIToken1;
+    console.log("AI Token: ", AIToken);
     try {
       const response = await fetch(`${AI_URL}/chat/completions`, {
         method: 'POST',
@@ -50,10 +54,9 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
     const trimmedTr3 = newTr3.trim();
 
     if (trimmedEng && (trimmedTr1 || trimmedTr2 || trimmedTr3)) {
-      // Check if the word already exists
       const isAlreadyIn = engW.some(word => {
         if (Array.isArray(word)) {
-          const words = word[0].split("-"); 
+          const words = word[0].split("-");
           return words.includes(trimmedEng);
         } else {
           return word === trimmedEng;
@@ -65,23 +68,21 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
       } else {
         const newEngW = [...engW, trimmedEng];
         const newTrW = [...trW, [trimmedTr1, trimmedTr2, trimmedTr3].filter(tr => tr !== "")];
-        
+
         setEngW(newEngW);
         setTrW(newTrW);
 
         if (vocabularyData) {
           const updatedData = { ...vocabularyData };
-          updatedData.words.push({ 
-            english: trimmedEng, 
+          updatedData.words.push({
+            english: trimmedEng,
             turkish: [trimmedTr1, trimmedTr2, trimmedTr3].filter(tr => tr !== ""),
-            ignore: false 
+            ignore: false
           });
-          
+
           setVocabularyData(updatedData);
-          
+
           try {
-            // If you're using Firebase, update the document
-            // This assumes you have a document reference
             if (vocabularyData.docRef) {
               await updateDoc(doc(db, "vocabulary", vocabularyData.docRef), {
                 words: updatedData.words
@@ -96,22 +97,31 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
           alert("Word added successfully!");
         }
 
-        // Clear the inputs
         setNewEng('');
         setNewTr1('');
         setNewTr2('');
         setNewTr3('');
       }
     } else {
+      // ✅ Sadece İngilizce kelime girilmişse AI'den çevirileri al
       if (trimmedEng) {
-        const sysPrompt = "You are an english-turkish translate program.";
-        const userPrompt = `Write the equivalents up to 3 of ${trimmedEng} using only one turkish word, don't comment or dont explain just give the equivalents and give 2 english sentences as additional.`;
-        
+        const sysPrompt = "You are a bilingual dictionary that only returns structured data.";
+        const userPrompt = `Give me the 3 most common  Turkish equivalents of the English word "${trimmedEng}", comma-separated in one line. Then give 2 example English sentences using the word, each on a new line. Do not explain anything. Explain the meaning of the word.`;
         const aiResponse = await askAI(sysPrompt, userPrompt);
+
+        // AI cevabını satırlara ayır ve ilk satırdan anlamları çıkar
+        const lines = aiResponse.split('\n');
+        const meanings = lines[0].split(',').map(str => str.trim());
+
+        // Otomatik inputlara yerleştir
+        setNewTr1(meanings[0] || '');
+        setNewTr2(meanings[1] || '');
+        setNewTr3(meanings[2] || '');
+
         alert(aiResponse);
         return;
       }
-      
+
       alert("Please enter at least one word and its equivalent.");
     }
   };
@@ -122,48 +132,43 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
         alert("No data to save!");
         return;
       }
-  
+
       // Firestore reference to the document where data will be saved
       const vocabularyRef = doc(db, 'data', 'mainData');  // Adjust 'mainData' or any document ID you're working with
-  
+
       // Update the document in Firestore
       await updateDoc(vocabularyRef, {
         words: vocabularyData.words,
         sentences: vocabularyData.sentences,  // Add other fields as necessary
       });
-  
+
       alert("Data successfully updated in Firestore!");
-  
+
     } catch (error) {
       console.error('An error occurred while updating database:', error);
       alert("An error occurred while updating database: " + error.message);
     }
   };
-  
+
+  const handleReset = () => {
+    setNewEng('');
+    setNewTr1('');
+    setNewTr2('');
+    setNewTr3('');
+  };
 
   const handleDownload = () => {
     if (!vocabularyData || !vocabularyData.words || vocabularyData.words.length === 0) {
       alert("No data to download");
       return;
     }
-
-    // Create English words file
-    const engContent = vocabularyData.words.map(word => word.english).join('\n');
-    const engBlob = new Blob([engContent], { type: 'text/plain' });
-    const engUrl = URL.createObjectURL(engBlob);
-    const engLink = document.createElement('a');
-    engLink.href = engUrl;
-    engLink.download = 'engW.txt';
-    engLink.click();
-
-    // Create Turkish words file
-    const trContent = vocabularyData.words.map(word => word.turkish.join('-')).join('\n');
-    const trBlob = new Blob([trContent], { type: 'text/plain' });
-    const trUrl = URL.createObjectURL(trBlob);
-    const trLink = document.createElement('a');
-    trLink.href = trUrl;
-    trLink.download = 'TRW.txt';
-    trLink.click();
+    // ✅ Create JSON file with full vocabularyData
+    const jsonBlob = new Blob([JSON.stringify(vocabularyData, null, 2)], { type: 'application/json' });
+    const jsonUrl = URL.createObjectURL(jsonBlob);
+    const jsonLink = document.createElement('a');
+    jsonLink.href = jsonUrl;
+    jsonLink.download = 'data.json';
+    jsonLink.click();
   };
 
   return (
@@ -213,8 +218,12 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
         <a onClick={handleDownload}>Download Files</a>
       </div>
       <div className="btn">
+        <a onClick={handleReset}>Reset</a>
+      </div>
+      <div className="btn">
         <a onClick={() => showPage("main")}>Back to Menu</a>
       </div>
+      
     </div>
   );
 }
