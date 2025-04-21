@@ -1,0 +1,11 @@
+# Node modules
+node_modules/
+
+# Build outputs
+build/
+
+# Firebase local files
+.firebase/
+
+# Environment variables
+.env
