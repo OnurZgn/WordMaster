@@ -16,7 +16,6 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
   const askAI = async (sysPrompt, userPrompt) => {
     if (AIToken === AIToken1) AIToken = AIToken2;
     else AIToken = AIToken1;
-    console.log("AI Token: ", AIToken);
     try {
       const response = await fetch(`${AI_URL}/chat/completions`, {
         method: 'POST',
@@ -43,7 +42,7 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
       return data.choices[0].message.content.replaceAll('"', '');
     } catch (error) {
       alert(`An error occurs while AI is responding! | query:${userPrompt}`);
-      return "Error getting AI response";
+      return "invalid";
     }
   };
 
@@ -108,6 +107,10 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
         const sysPrompt = "You are a bilingual dictionary that only returns structured data.";
         const userPrompt = `Give me the 3 most common  Turkish equivalents of the English word "${trimmedEng}", comma-separated in one line. Then give 2 example English sentences using the word, each on a new line. Do not explain anything. Explain the meaning of the word.`;
         const aiResponse = await askAI(sysPrompt, userPrompt);
+        if (aiResponse === "invalid") {
+          return;
+        }
+
 
         // AI cevabını satırlara ayır ve ilk satırdan anlamları çıkar
         const lines = aiResponse.split('\n');
@@ -151,10 +154,13 @@ function AddWordPage({ showPage, vocabularyData, setVocabularyData, engW, trW, s
   };
 
   const handleReset = () => {
+    if((newEng !== '' && (newTr1 !== '' || newTr2 !== '' || newTr3 !== ''))) {
+      setNewTr1('');
+      setNewTr2('');
+      setNewTr3('');
+    }else
     setNewEng('');
-    setNewTr1('');
-    setNewTr2('');
-    setNewTr3('');
+    
   };
 
   const handleDownload = () => {

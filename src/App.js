@@ -4,9 +4,11 @@ import UploadPage from './components/UploadPage';
 import MainPage from './components/MainPage';
 import AddWordPage from './components/AddWordPage';
 import TranslationPracticePage from './components/TranslationPracticePage'; // Import the new page
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import './App.css';
 
-function App() {
+const AppContent = () => {
+  const { isDark, toggleTheme } = useTheme();
   const [currentPage, setCurrentPage] = useState('upload');
   const [vocabularyData, setVocabularyData] = useState(null);
 
@@ -22,6 +24,11 @@ function App() {
 
   return (
     <div className="app-container">
+      <div className="theme-toggle">
+        <button className="theme-toggle-btn" onClick={toggleTheme}>
+          {isDark ? '☀️' : '🌙'}
+        </button>
+      </div>
       <div className="container">
         {currentPage === 'upload' && (
           <UploadPage 
@@ -69,6 +76,14 @@ function App() {
         )}
       </div>
     </div>
+  );
+};
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

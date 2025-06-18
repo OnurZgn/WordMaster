@@ -5,6 +5,10 @@ import './index.css';
 import App from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
+// Set initial theme
+document.documentElement.setAttribute('data-theme', 'dark');
+
 root.render(
   <React.StrictMode>
     <App />

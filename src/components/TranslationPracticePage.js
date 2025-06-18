@@ -6,22 +6,24 @@ import "../styles/TranslationPracticePage.css";
 let AIToken = process.env.REACT_APP_AI_API_KEY1;
 
 const TranslationPracticePage = ({ showPage }) => {
-  const [sentences, setSentences] = useState([]);
+  let [sentences, setSentences] = useState([]);
+  let [selected, setselected] = useState(null); // To store the selected sentence
   const [currentSentence, setCurrentSentence] = useState(null);
   const [userTranslation, setUserTranslation] = useState("");
   const [aiFeedback, setAiFeedback] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState({ correct: 0, total: 0 });
+  const [progress, setProgress] = useState({ correct: 0, close: 0, incorrect: 0, total: 0 });
   const [showAnswer, setShowAnswer] = useState(false);
   const [wordDefinition, setWordDefinition] = useState(null);
   const [translationDirection, setTranslationDirection] = useState("en-tr"); // "en-tr" or "tr-en"
   const [practiceHistory, setPracticeHistory] = useState([]);
   const [streak, setStreak] = useState(0);
   const [difficulty, setDifficulty] = useState("medium");
-  
+  const [practiceTopic, setPracticeTopic] = useState("general"); // New: Topic selector
+
   // Reference for the tooltip positioning
   const tooltipRef = useRef(null);
-  
+
   // AI configuration
   const AI_URL = process.env.REACT_APP_AI_API_URL;
   const AIToken1 = process.env.REACT_APP_AI_API_KEY1;
@@ -32,7 +34,6 @@ const TranslationPracticePage = ({ showPage }) => {
     // Alternate between API keys to distribute usage
     if (AIToken === AIToken1) AIToken = AIToken2;
     else AIToken = AIToken1;
-    
     try {
       setIsLoading(true);
       const response = await fetch(`${AI_URL}/chat/completions`, {
@@ -42,7 +43,7 @@ const TranslationPracticePage = ({ showPage }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo",
+          model: "gpt-4o",
           messages: [
             { role: "system", content: sysPrompt },
             { role: "user", content: userPrompt },
@@ -56,20 +57,19 @@ const TranslationPracticePage = ({ showPage }) => {
       return data.choices[0].message.content.replaceAll('"', "");
     } catch (error) {
       setIsLoading(false);
-      console.error("AI error:", error);
-      return "Error getting AI response. Please try again.";
+      return "invalid";
     }
   };
 
   useEffect(() => {
     fetchSentences();
   }, []);
-  
+
   useEffect(() => {
     if (sentences.length > 0) {
       selectRandomSentence();
     }
-  }, [sentences, translationDirection, difficulty]);
+  }, [sentences, translationDirection, difficulty, practiceTopic]);
 
   const fetchSentences = async () => {
     setIsLoading(true);
@@ -82,7 +82,7 @@ const TranslationPracticePage = ({ showPage }) => {
         // Ensure we have sentences in the right format
         if (data.sentences && Array.isArray(data.sentences)) {
           setSentences(data.sentences);
-          setProgress({ correct: 0, total: 0 });
+          setProgress({ correct: 0, close: 0, incorrect: 0, total: 0 });
         } else {
           console.log("No sentences found or wrong format!");
           setSentences([]);
@@ -98,33 +98,62 @@ const TranslationPracticePage = ({ showPage }) => {
 
   const goNext = async () => {
     await selectRandomSentence();
-};
+  };
 
-const selectRandomSentence = async (direction = translationDirection) => {
+  const selectRandomSentence = async (direction = translationDirection) => {
     if (sentences.length === 0) return;
 
     let filteredSentences = sentences;
+
     if (difficulty !== "all") {
       filteredSentences = sentences.filter(sentence => {
-        if (typeof sentence === 'object' && sentence.difficulty) {
-          return sentence.difficulty === difficulty;
-        } else {
-          const text = typeof sentence === 'string' ? sentence : (sentence.sentence || "");
-          const wordCount = text.split(" ").length;
+        const word = Object.keys(sentence)[0];
+        const text = sentence[word] || "";
 
-          if (difficulty === "easy") return wordCount <= 5;
-          if (difficulty === "medium") return wordCount > 5 && wordCount <= 10;
-          if (difficulty === "hard") return wordCount > 10;
-          return true;
-        }
+        const wordCount = text.trim().split(/\s+/).length;
+
+        if (difficulty === "easy") return wordCount <= 7;
+        if (difficulty === "medium") return wordCount > 6 && wordCount <= 10;
+        if (difficulty === "hard") return wordCount > 10;
+        return true;
       });
     }
 
-    if (filteredSentences.length === 0) filteredSentences = sentences;
+
+    // Filter by topic
+    if (practiceTopic !== "general") {
+      filteredSentences = filteredSentences.filter(sentence => {
+        if (typeof sentence === 'object' && sentence.topic) {
+          return sentence.topic === practiceTopic;
+        }
+        return false;
+      });
+    }
+
+    if (filteredSentences.length === 0) {
+      // If no sentences match criteria, generate a sentence with AI
+      const generatedSentence = await generateSentenceByTopic(practiceTopic, difficulty);
+      if (generatedSentence) {
+        setCurrentSentence({
+          text: generatedSentence.text,
+          translation: generatedSentence.translation,
+          topic: practiceTopic,
+          difficulty: difficulty
+        });
+        setAiFeedback("");
+        setUserTranslation("");
+        setShowAnswer(false);
+        setWordDefinition(null);
+        return;
+      }
+
+      // Fallback to all sentences if no match and generation failed
+      filteredSentences = sentences;
+    }
 
     const randomIndex = Math.floor(Math.random() * filteredSentences.length);
-    const selected = filteredSentences[randomIndex];
-
+    selected = filteredSentences[randomIndex];
+    setselected(selected); // Store the selected sentence
     // Yön 'tr-en' ise Türkçe cümleyi sormalıyız, ve İngilizce çevirisini AI ile yapmalıyız
     if (direction === 'tr-en') {
       if (typeof selected === 'string') {
@@ -156,7 +185,6 @@ const selectRandomSentence = async (direction = translationDirection) => {
         }
       }
     } else {
-      // Yön 'en-tr' ise, İngilizce cümleyi olduğu gibi göster
       if (typeof selected === 'string') {
         setCurrentSentence({
           text: selected,
@@ -167,6 +195,7 @@ const selectRandomSentence = async (direction = translationDirection) => {
         setCurrentSentence({
           text: selected.sentence,
           translation: selected.translation || null,
+          topic: selected.topic || "general",
           index: sentences.indexOf(selected)
         });
       } else if (selected) {
@@ -185,107 +214,186 @@ const selectRandomSentence = async (direction = translationDirection) => {
     setUserTranslation("");
     setShowAnswer(false);
     setWordDefinition(null);
-};
+  };
 
-// AI ile çeviriyi yap (Türkçeye çevir)
-const translateToTurkish = async (sentence) => {
+  // Generate a sentence based on topic
+  const generateSentenceByTopic = async (topic, difficulty) => {
+    const difficultyLevels = {
+      easy: "simple sentences with basic vocabulary",
+      medium: "moderately complex sentences with common vocabulary",
+      hard: "complex sentences with advanced vocabulary and structures"
+    };
+
+    const topicPrompts = {
+      "tenses": `Create an English sentence that practices the use of various tenses (past, present, future). Make it ${difficultyLevels[difficulty]}.`,
+      "phrasal-verbs": `Create an English sentence that includes at least one phrasal verb. Make it ${difficultyLevels[difficulty]}.`,
+      "modals": `Create an English sentence that includes modal verbs (can, could, should, would, etc.). Make it ${difficultyLevels[difficulty]}.`,
+      "conditionals": `Create an English sentence that demonstrates the use of conditionals. Make it ${difficultyLevels[difficulty]}.`
+    };
+
+    const sysPrompt = "You are a language education assistant. Create sentences for language learners based on specific grammar topics.";
+    const userPrompt = `${topicPrompts[topic] || "Create a general English sentence."} 
+    
+Response format:
+English: [Your created sentence]
+Turkish: [Turkish translation of the sentence]
+Explanation: [Brief explanation of the grammar point demonstrated]`;
+
+    try {
+      const result = await askAI(sysPrompt, userPrompt);
+      if (result === "invalid") return null;
+
+      // Parse the result
+      const englishMatch = result.match(/English: (.*)/);
+      const turkishMatch = result.match(/Turkish: (.*)/);
+
+      if (englishMatch && turkishMatch) {
+        return {
+          text: englishMatch[1].trim(),
+          translation: turkishMatch[1].trim(),
+          topic: topic,
+          difficulty: difficulty
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error generating sentence:", error);
+      return null;
+    }
+  };
+
+  // AI ile çeviriyi yap (Türkçeye çevir)
+  const translateToTurkish = async (sentence) => {
     const sysPrompt = "You are an English-to-Turkish translator. Provide only the Turkish translation of the sentence.";
     const userPrompt = `Translate this English sentence to Turkish: "${sentence}"`;
 
     const result = await askAI(sysPrompt, userPrompt);
+    if (result === "invalid") return;
     return result;  // Çeviriyi döndürüyoruz
-};
-
+  };
 
   const handleCheckTranslation = async () => {
     if (!userTranslation.trim()) {
       alert("Please enter your translation first!");
       return;
     }
-  
+
     if (!currentSentence) return;
-  
+
     const sourceLang = translationDirection === "en-tr" ? "English" : "Turkish";
     const targetLang = translationDirection === "en-tr" ? "Turkish" : "English";
-  
-    const sysPrompt = `You are a ${sourceLang}-to-${targetLang} translation validator. Check whether the translation is correct or not. Be concise and helpful.`;
+
+    const sysPrompt = `You are a ${sourceLang}-to-${targetLang} translation validator. Evaluate whether the translation is correct, close (partially correct), or incorrect.`;
     const userPrompt = `
-  The user translated the ${sourceLang} sentence "${currentSentence.text}" into ${targetLang} as follows:
-  "${userTranslation}"
-  
-  Is this translation correct? Respond in a structured format:
-  1. Start with either "✓ CORRECT" or "✗ INCORRECT"
-  2. If incorrect, provide the correct translation
-  3. Add a brief explanation of any mistakes (max 2 sentences)
-  `;
-  
+The user translated the ${sourceLang} sentence: "${currentSentence.text}" 
+Into ${targetLang} as: "${userTranslation}"
+
+Evaluate this translation with one of three categories:
+1. "✓ CORRECT" - The translation is fully accurate in meaning and grammar
+2. "⚠ CLOSE" - The translation captures the main idea but has major errors or could be improved
+3. "✗ INCORRECT" - The translation has significant errors or misses the meaning
+
+Then provide:
+1. The correct translation
+2. A detailed explanation of any mistakes or how the "close" translation could be improved
+3. Highlight specific errors or problem areas by mentioning the exact words or phrases that need correction
+4. If relevant, briefly explain the grammar concept involved (especially if this is related to ${currentSentence.topic || "general translation"})
+
+Format your response starting with one of the three categories (CORRECT, CLOSE, or INCORRECT).
+`;
+
     const result = await askAI(sysPrompt, userPrompt);
+    if (result === "invalid") return;
     setAiFeedback(result);
-  
-    const isCorrect = result.toLowerCase().includes("correct") && !result.toLowerCase().includes("incorrect");
-  
-    // Update progress
+
+    // Determine the category from the AI response
+    let category = "incorrect";
+    if (result.toLowerCase().includes("correct") && !result.toLowerCase().includes("close") && !result.toLowerCase().includes("incorrect")) {
+      category = "correct";
+      sentences = sentences.filter(sentence => {
+        return sentence[Object.keys(sentence)[0]] !== selected[Object.keys(selected)[0]];
+      });
+      setSentences(sentences); // Update the sentences state to remove the current sentence
+
+    } else if (result.toLowerCase().includes("close")) {
+      category = "close";
+    }
+
+
+    // Update progress based on category
     setProgress(prev => ({
-      correct: isCorrect ? prev.correct + 1 : prev.correct,
+      ...prev,
+      [category]: prev[category] + 1,
       total: prev.total + 1
     }));
-  
-    // Update streak
-    setStreak(prev => isCorrect ? prev + 1 : 0);
-  
+
+    // Update streak - both correct and close answers contribute to streak
+    setStreak(prev => (category === "correct" || category === "close") ? prev + 1 : 0);
+
     // Add to practice history
     setPracticeHistory(prev => [
-      ...prev, 
+      ...prev,
       {
         sentence: currentSentence.text,
         userTranslation,
-        isCorrect,
+        category,
         timestamp: new Date().toISOString()
       }
     ]);
+    if (category === "correct") {
+      goNext(); // Automatically go to the next sentence if the answer is correct
+    }
   };
 
   const handleShowAnswer = async () => {
     setShowAnswer(true);
     if (!currentSentence) return;
-  
+
     const sourceLang = translationDirection === "en-tr" ? "English" : "Turkish";
     const targetLang = translationDirection === "en-tr" ? "Turkish" : "English";
-  
-    const sysPrompt = `You are a ${sourceLang}-to-${targetLang} translator. Provide only the translation without explanations.`;
-    const userPrompt = `Translate this ${sourceLang} sentence to ${targetLang}: "${currentSentence.text}"`;
-  
+
+    const sysPrompt = `You are a ${sourceLang}-to-${targetLang} translator. Provide the translation with a brief explanation.`;
+    const userPrompt = `Translate this ${sourceLang} sentence to ${targetLang}: "${currentSentence.text}"
+
+Please provide:
+1. The translation
+2. A brief explanation of any challenging vocabulary or grammar in the sentence
+${currentSentence.topic ? `3. Explain how this sentence relates to the topic of "${currentSentence.topic}"` : ""}`;
+
     const result = await askAI(sysPrompt, userPrompt);
-    setAiFeedback(`Model translation: ${result}`);
+    if (result === "invalid") return;
+    setAiFeedback(`Model translation and explanation: ${result}`);
   };
-  
 
   // Function to handle word click for definition
   const handleWordClick = async (e) => {
     if (!currentSentence) return;
-    
+
     // Get the clicked word
     const word = e.target.textContent.replace(/[.,!?;:()]/g, '');
     if (!word.trim()) return;
-    
+
     // Position the tooltip near the clicked word
     const rect = e.target.getBoundingClientRect();
     if (tooltipRef.current) {
       tooltipRef.current.style.top = `${rect.bottom + window.scrollY + 10}px`;
       tooltipRef.current.style.left = `${rect.left + window.scrollX}px`;
     }
-    
+
     // Get translation for the word
     setIsLoading(true);
     const sourceLang = translationDirection === "en-tr" ? "English" : "Turkish";
     const targetLang = translationDirection === "en-tr" ? "Turkish" : "English";
-    
-    const sysPrompt = `You are a ${sourceLang}-to-${targetLang} dictionary. Provide a brief definition/translation of the word.`;
+
+    const sysPrompt = `You are a ${sourceLang}-to-${targetLang} dictionary. Provide a brief definition/translation of the word with examples.`;
     const userPrompt = `Provide the ${targetLang} translation of the ${sourceLang} word "${word}". Format your response as:
 Word: (original word)
-Translation: (at least three translation) in ${targetLang}`;
+Translation: (at least three translations) in ${targetLang} 
+Examples: (1-2 simple example sentences using this word)
+${currentSentence.topic ? `Related to "${currentSentence.topic}": (briefly mention if this word relates to the grammar topic we're practicing)` : ""}`;
 
     const result = await askAI(sysPrompt, userPrompt);
+    if (result === "invalid") return;
     setWordDefinition({ word, definition: result });
     setIsLoading(false);
   };
@@ -293,30 +401,49 @@ Translation: (at least three translation) in ${targetLang}`;
   const toggleDirection = async () => {
     const newDirection = translationDirection === "en-tr" ? "tr-en" : "en-tr";
     setTranslationDirection(newDirection);
-    
-    if (newDirection === "tr-en") {
-      const sysPrompt = "You are a Turkish-to-English translator. Provide only the English translation of the sentence.";
-      const userPrompt = `Translate this Turkish sentence to English: "${currentSentence.text}"`;
-      const result = await askAI(sysPrompt, userPrompt);
-      
-      // Set the AI-generated translation as the question in the translation box
-      setCurrentSentence(prevState => ({
-        ...prevState,
-        text: result,
-      }));
+
+    if (currentSentence) {
+      if (newDirection === "tr-en") {
+        const sysPrompt = "You are a Turkish-to-English translator. Provide only the English translation of the sentence.";
+        const userPrompt = `Translate this Turkish sentence to English: "${currentSentence.text}"`;
+        const result = await askAI(sysPrompt, userPrompt);
+        if (result === "invalid") return;
+
+        // Set the AI-generated translation as the question in the translation box
+        setCurrentSentence(prevState => ({
+          ...prevState,
+          text: result,
+        }));
+      } else {
+        await selectRandomSentence("en-tr");
+      }
     }
   };
-  
 
   // Calculate accuracy percentage
   const getAccuracyPercentage = () => {
     if (progress.total === 0) return 0;
-    return Math.round((progress.correct / progress.total) * 100);
+    return Math.round(((progress.correct + (progress.close * 0.5)) / progress.total) * 100);
   };
 
   // Handle difficulty change
   const handleDifficultyChange = (e) => {
     setDifficulty(e.target.value);
+  };
+
+  // Handle topic change
+  const handleTopicChange = (e) => {
+    setPracticeTopic(e.target.value);
+  };
+
+  // Get feedback class based on category
+  const getFeedbackClass = (feedbackText) => {
+    if (feedbackText.toLowerCase().includes("correct") && !feedbackText.toLowerCase().includes("incorrect") && !feedbackText.toLowerCase().includes("close")) {
+      return "correct";
+    } else if (feedbackText.toLowerCase().includes("close")) {
+      return "close";
+    }
+    return "incorrect";
   };
 
   return (
@@ -331,12 +458,12 @@ Translation: (at least three translation) in ${targetLang}`;
             </button>
             <span className={translationDirection === "tr-en" ? "active" : ""}>Turkish</span>
           </div>
-          
+
           <div className="difficulty-selector">
             <label htmlFor="difficulty">Difficulty:</label>
-            <select 
-              id="difficulty" 
-              value={difficulty} 
+            <select
+              id="difficulty"
+              value={difficulty}
               onChange={handleDifficultyChange}
             >
               <option value="easy">Easy</option>
@@ -345,7 +472,22 @@ Translation: (at least three translation) in ${targetLang}`;
               <option value="all">All Levels</option>
             </select>
           </div>
-          
+
+          <div className="topic-selector">
+            <label htmlFor="topic">Topic:</label>
+            <select
+              id="topic"
+              value={practiceTopic}
+              onChange={handleTopicChange}
+            >
+              <option value="general">General</option>
+              <option value="tenses">Tenses</option>
+              <option value="phrasal-verbs">Phrasal Verbs</option>
+              <option value="modals">Modal Verbs</option>
+              <option value="conditionals">Conditionals</option>
+            </select>
+          </div>
+
           <button className="back-button" onClick={() => showPage("main")}>
             Back to Menu
           </button>
@@ -364,15 +506,20 @@ Translation: (at least three translation) in ${targetLang}`;
             <div className="stat">
               <span>Completed:</span> {progress.total}
             </div>
+            {currentSentence.topic && currentSentence.topic !== "general" && (
+              <div className="stat topic-tag">
+                <span>Topic:</span> {currentSentence.topic.replace("-", " ")}
+              </div>
+            )}
           </div>
 
           <div className="sentence-card">
             <h3>Translate to {translationDirection === "en-tr" ? "Turkish" : "English"}:</h3>
             <p className="source-sentence">
               {currentSentence.text.split(" ").map((word, index) => (
-                <span 
-                  key={index} 
-                  className="clickable-word" 
+                <span
+                  key={index}
+                  className="clickable-word"
                   onClick={handleWordClick}
                 >
                   {word}{index < currentSentence.text.split(" ").length - 1 ? " " : ""}
@@ -404,24 +551,24 @@ Translation: (at least three translation) in ${targetLang}`;
           />
 
           <div className="button-group">
-            <button 
-              className="check-button" 
+            <button
+              className="check-button"
               onClick={handleCheckTranslation}
               disabled={isLoading}
             >
               {isLoading ? "Checking..." : "Check Translation"}
             </button>
-            
-            <button 
-              className="show-button" 
+
+            <button
+              className="show-button"
               onClick={handleShowAnswer}
               disabled={isLoading || showAnswer}
             >
               Show Answer
             </button>
-            
-            <button 
-              className="next-button" 
+
+            <button
+              className="next-button"
               onClick={goNext}
             >
               Next Sentence
@@ -429,7 +576,7 @@ Translation: (at least three translation) in ${targetLang}`;
           </div>
 
           {aiFeedback && (
-            <div className={`feedback-container ${aiFeedback.toLowerCase().includes("correct") && !aiFeedback.toLowerCase().includes("incorrect") ? "correct" : "incorrect"}`}>
+            <div className={`feedback-container ${getFeedbackClass(aiFeedback)}`}>
               <h4>Feedback:</h4>
               <p>{aiFeedback}</p>
             </div>
@@ -448,16 +595,18 @@ Translation: (at least three translation) in ${targetLang}`;
           )}
         </div>
       )}
-      
+
       {practiceHistory.length > 0 && (
         <div className="practice-history">
           <h3>Recent Practice</h3>
           <div className="history-items">
             {practiceHistory.slice(-5).map((item, idx) => (
-              <div key={idx} className={`history-item ${item.isCorrect ? 'correct' : 'incorrect'}`}>
+              <div key={idx} className={`history-item ${item.category}`}>
                 <div className="history-sentence">{item.sentence}</div>
                 <div className="history-translation">{item.userTranslation}</div>
-                <div className="history-result">{item.isCorrect ? '✓' : '✗'}</div>
+                <div className="history-result">
+                  {item.category === "correct" ? '✓' : item.category === "close" ? '⚠' : '✗'}
+                </div>
               </div>
             ))}
           </div>

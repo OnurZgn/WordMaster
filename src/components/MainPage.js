@@ -144,7 +144,7 @@ function MainPage({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo",
+          model: "gpt-4o",
           messages: [
             {
               role: "system",
@@ -163,7 +163,7 @@ function MainPage({
       return data.choices[0].message.content.replaceAll('"', '');
     } catch (error) {
       alert(`An error occurs while AI is responding! | query:${userPrompt}`);
-      return "Error getting AI response";
+      return "invalid";
     }
   };
 
@@ -173,10 +173,13 @@ function MainPage({
       return;
     }
     
-    const word = engS[randomIndex];
+    const currentWord = engS[randomIndex];
+    const word = typeof currentWord === 'string' ? currentWord.split("-")[0] : currentWord;
+    
     const sysPrompt = "You are an English language assistant. Create a grammatically correct sentence using the word.";
-    const userPrompt = `Create a sentence using the word "${word}", use at most 9 words.`;
+    const userPrompt = `Create a sentence using the word "${word}", use at most 20 words.`;
     const response = await askAI(sysPrompt, userPrompt);
+    if(response === "invalid") return;
     setIntervalText(response);
     
     // Update the vocabulary data with the new sentence
@@ -208,6 +211,7 @@ function MainPage({
     const sysPrompt = "You are an english language assistant. Explain the given word with only one short sentence.";
     const userPrompt = `Explain the world: ${word}, use at most 10 word to explain it`;
     const response = await askAI(sysPrompt, userPrompt);
+    if(response === "invalid") return;
     setIntervalText(response);
   };
 
